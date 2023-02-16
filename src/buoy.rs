@@ -1,3 +1,14 @@
+use std::io::Read;
+use csv::ReaderBuilder;
+use error_chain::error_chain;
+
+error_chain! {
+    foreign_links {
+        HttpRequest(reqwest::Error);
+        Parse(csv::Error);
+    }
+}
+
 // A buoy (data source)
 pub struct Buoy {
     buoy_name: String,
@@ -14,6 +25,30 @@ impl Buoy {
 
     pub fn to_string(&self) -> String {
         format!("Buoy {} ({})", &self.buoy_id, &self.buoy_name)
+    }
+
+    pub fn to_url(&self) -> String {
+        format!("https://www.ndbc.noaa.gov/data/realtime2/{}.txt", &self.buoy_id)
+    }
+
+    pub fn read(&self) -> Result<()> {
+        // Get readings
+        let mut res = reqwest::blocking::get(self.to_url())?;
+        let mut body = String::new();
+        res.read_to_string(&mut body);
+
+        // Read csv: for now just print first 10 entries
+        let mut rdr = ReaderBuilder::new()
+            .delimiter(b' ')
+            .flexible(true)
+            .has_headers(false)              // Manually handle headers; they might change
+            .from_reader(body.as_bytes());
+        // Print first ten entries
+        for i in 0..10 {
+            let record = rdr.records().next();
+            println!("{:?}", record);
+        }
+        Ok(())
     }
 }
 
@@ -41,18 +76,26 @@ impl Swell {
             wave_dir,
         }
     }
+
+    pub fn from_lines(str: &String) -> Self {
+        Self::default() // TODO
+    }
 }
 
 // A tide reading
 #[derive(Default)]
 pub struct Tide {
-    water_depth: Option<f32>
+    tide: Option<f32>
 }
 
 impl Tide {
-    pub fn new(water_depth: Option<f32>) -> Self {
+    pub fn new(tide: Option<f32>) -> Self {
         Tide {
-            water_depth,
+            tide,
         }
+    }
+
+    pub fn from_lines(str: &String) -> Self {
+        Self::default() // TODO
     }
 }
