@@ -9,17 +9,37 @@ error_chain! {
     }
 }
 
-// A buoy (data source)
+// Buoy readings are discrete or continuous
+enum ReadingVal {
+    Discrete(i32),
+    Continuous(f32),
+}
+
+// Buoy readings are a 3-tuple of a label, units, and an actual value
+pub struct Reading {
+    name : String,
+    units : String,
+    val : Option<ReadingVal>,
+}
+
+pub enum BuoyKind {
+    Swell,
+    Tide,
+}
+
+// A swell buoy
 pub struct Buoy {
     buoy_name: String,
     buoy_id: i32,
+    buoy_kind : BuoyKind,
 }
 
 impl Buoy {
-    pub fn new(buoy_name: String, buoy_id: i32) -> Self {
+    pub fn new(buoy_name: String, buoy_id: i32, buoy_kind: BuoyKind) -> Self {
         Buoy {
             buoy_name,
             buoy_id,
+            buoy_kind
         }
     }
 
@@ -32,6 +52,13 @@ impl Buoy {
     }
 
     pub fn read(&self) -> Result<()> {
+        match &self.buoy_kind {
+            BuoyKind::Swell => self.read_swell(),
+            BuoyKind::Tide => self.read_tide(),
+        }
+    }
+
+    fn read_swell(&self) -> Result<()> {
         // Get readings
         let mut res = reqwest::blocking::get(self.to_url())?;
         let mut body = String::new();
@@ -44,58 +71,14 @@ impl Buoy {
             .has_headers(false)              // Manually handle headers; they might change
             .from_reader(body.as_bytes());
         // Print first ten entries
-        for i in 0..10 {
+        for _ in 0..10 {
             let record = rdr.records().next();
             println!("{:?}", record);
         }
         Ok(())
     }
-}
 
-// A swell reading
-#[derive(Default)]
-pub struct Swell {
-    wind_dir: Option<i32>,
-    wind_speed: Option<f32>,
-    wind_gusts: Option<f32>,
-    wave_height: Option<f32>,
-    wave_dpd: Option<f32>,
-    wave_apd: Option<f32>,
-    wave_dir: Option<i32>,
-}
-
-impl Swell {
-    pub fn new(wind_dir: Option<i32>, wind_speed: Option<f32>, wind_gusts: Option<f32>, wave_height: Option<f32>, wave_dpd: Option<f32>, wave_apd: Option<f32>, wave_dir: Option<i32>) -> Self {
-        Swell {
-            wind_dir,
-            wind_speed,
-            wind_gusts,
-            wave_height,
-            wave_dpd,
-            wave_apd,
-            wave_dir,
-        }
-    }
-
-    pub fn from_lines(str: &String) -> Self {
-        Self::default() // TODO
-    }
-}
-
-// A tide reading
-#[derive(Default)]
-pub struct Tide {
-    tide: Option<f32>
-}
-
-impl Tide {
-    pub fn new(tide: Option<f32>) -> Self {
-        Tide {
-            tide,
-        }
-    }
-
-    pub fn from_lines(str: &String) -> Self {
-        Self::default() // TODO
+    fn read_tide(&self) -> Result<()> {
+        Ok(())
     }
 }
