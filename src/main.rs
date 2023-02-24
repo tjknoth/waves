@@ -8,6 +8,6 @@ fn main() {
     println!("{}", ptloma.to_string());
     match ptloma.read() {
         Ok(()) => (),
-        Err(error) => (),
+        Err(error) => println!("{:?}", error),
     }
 }

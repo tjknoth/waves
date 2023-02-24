@@ -7,5 +7,4 @@ edition = "2021"
 
 [dependencies]
 reqwest = { version = "0.11", features = ["blocking"] }
-csv = { version = "1.2" }
-error-chain = { version = "0.12" }
+itertools = { version = "0.10" }
